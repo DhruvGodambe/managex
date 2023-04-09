@@ -41,3 +41,28 @@ body.active-modal {
     right: 10px;
     padding: 5px 7px;
 }
+
+.asset-element {
+    margin: 10px;
+    padding: 20px;
+    width: 20%;
+    background: #49abf5;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #49abf5;
+}
+
+.asset-element:hover {
+    box-shadow: 0 0 10px #49abf5;
+    border: 1px solid #0c59f2;
+}
+
+.asset-element-selected {
+    margin: 10px;
+    padding: 20px;
+    width: 20%;
+    background: #0c59f2;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #0c59f2;
+}
