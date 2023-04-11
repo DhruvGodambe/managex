@@ -1,8 +1,14 @@
 import React, { use, useEffect, useState } from "react";
 import { CreateFundModal } from "./CreateFundModal";
 import portfolioManagerABI from "../../abis/portfolioManager.json";
+import { toast, ToastContainer } from "react-toastify";
 import { ethers } from "ethers";
-import { useProvider, useAccount, usePrepareContractWrite, useContractWrite } from "wagmi";
+import {
+  useProvider,
+  useAccount,
+  usePrepareContractWrite,
+  useContractWrite,
+} from "wagmi";
 import Switch from "react-switch";
 import { assets } from "@/constants/assets";
 import ERC20 from "../../abis/erc20.json";
@@ -22,26 +28,58 @@ export default function Dashboard() {
   const provider = useProvider();
   const [autoBalance, setAutoBalance] = useState(false);
   const [portfolioAssets, setPortfolioAssets] = useState([]);
-  const {address: connectedAddress}: any = useAccount();
+  const { address: connectedAddress }: any = useAccount();
   const [depositPopup, setDepositPopup] = useState(false);
-  const [fundingTokenBalance, setFundingTokenBalance] = useState(0.00);
+  const [fundingTokenBalance, setFundingTokenBalance] = useState(0.0);
   const [portfolioBalanceList, setPortfolioBalanceList] = useState([]);
 
   let portfolioManagerAddress: any;
-  if(typeof window !== 'undefined'){
+  if (typeof window !== "undefined") {
     portfolioManagerAddress = localStorage.getItem("portfolioManager") || "";
   }
-    const { config } = usePrepareContractWrite({
-      address: portfolioManagerAddress,
-      abi: portfolioManagerABI.abi,
-      functionName: "balancePortfolio"
-    });
-    const { data, isLoading, isSuccess, write, writeAsync } = useContractWrite({
-      ...config,
-      async onSuccess(data) {
-        
-      },
-    });
+  const { config } = usePrepareContractWrite({
+    address: portfolioManagerAddress,
+    abi: portfolioManagerABI.abi,
+    functionName: "balancePortfolio",
+  });
+  const { data, isLoading, isSuccess, write, writeAsync } = useContractWrite({
+    ...config,
+    async onSuccess(data) {
+      toast("Transaction processing...", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+
+      const receipt = await data.wait();
+
+      toast.success("Transaction successful", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+
+      const {logs} = receipt;
+      const portfolioEvents = logs.filter(obj => obj.address.toLocaleLowerCase() == localStorage.getItem("portfolioManager")?.toLocaleLowerCase());
+      portfolioEvents.forEach(event => {
+        const decodedEvent = ethers.utils.defaultAbiCoder.decode(
+          ['address', 'uint'],
+          event.data
+        )
+        console.log({decodedEvent})
+      })
+    },
+  });
 
   useEffect(() => {
     if (localStorage.getItem("portfolioManager")) {
@@ -59,31 +97,25 @@ export default function Dashboard() {
   }, []);
 
   async function getPortfolioTokens(contract: any) {
-    const numberOfPortfolioTokens = (await contract.numberOfTokens()).toNumber();
+    const numberOfPortfolioTokens = (
+      await contract.numberOfTokens()
+    ).toNumber();
     const portfolioTokens: any = [];
-    for(let i = 0; i < numberOfPortfolioTokens; i++) {
+    for (let i = 0; i < numberOfPortfolioTokens; i++) {
       const address = await contract.portfolioTokens(i);
       assets.forEach((ass) => {
-        if(ass.address == address){
+        if (ass.address == address) {
           portfolioTokens.push(ass);
         }
-      })
+      });
     }
     setPortfolioAssets(portfolioTokens);
-    const balance = await getTokenBalance("0x29FeC84bED2D86A7d520F26275D61fc635Ab381e")
-    setFundingTokenBalance(parseFloat(balance.toString()))
+    const balance = await getTokenBalance(
+      "0x29FeC84bED2D86A7d520F26275D61fc635Ab381e"
+    );
+    setFundingTokenBalance(parseFloat(balance.toString()));
 
     setPortfolioBalance(portfolioTokens);
-  }
-
-  function openModal() {
-    setIsOpen(true);
-  }
-
-  function afterOpenModal() {
-    // references are now sync'd and can be accessed.
-    subtitle.style.color = "#f00";
-    modal.style.color = "#f00";
   }
 
   function closeModal() {
@@ -100,27 +132,29 @@ export default function Dashboard() {
 
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);
     const portfolioManagerAddress =
-        localStorage.getItem("portfolioManager") || "";
+      localStorage.getItem("portfolioManager") || "";
     const erc20 = new ethers.Contract(address, ERC20.abi, provider);
     const balance = await erc20.balanceOf(portfolioManagerAddress);
     const decimals = await erc20.decimals();
-    const readableBalance = ethers.utils.formatUnits(balance.toString(), decimals.toString());
-    console.log(readableBalance);
+    const readableBalance = ethers.utils.formatUnits(
+      balance.toString(),
+      decimals.toString()
+    );
     return readableBalance;
   }
 
   async function setPortfolioBalance(portfolioTokens: any) {
     let list: any = [];
-    for(let i = 0; i < portfolioTokens.length; i++) {
+    for (let i = 0; i < portfolioTokens.length; i++) {
       const balance = await getTokenBalance(portfolioTokens[i].address);
-      list.push(parseFloat(balance.toString()))
+      list.push(parseFloat(balance.toString()));
     }
     setPortfolioBalanceList(list);
   }
 
   const balancePortfolio = async () => {
     writeAsync?.();
-  }
+  };
 
   return (
     <>
@@ -214,18 +248,27 @@ export default function Dashboard() {
                   width: "50%",
                 }}
               >
-                <div style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignSelf: "center",
-                }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignSelf: "center",
+                  }}
+                >
                   <p>auto balance</p>
-                  <Switch onChange={handleAutobalance} checked={autoBalance}/>
+                  <Switch onChange={handleAutobalance} checked={autoBalance} />
                 </div>
-                <button style={{margin: "0 10px", fontSize: "20px"}} onClick={() => {
-                  setDepositPopup(true)
-                }}>+ deposit USDC</button>
-                <button style={{margin: "0 10px", fontSize: "20px"}}>withdraw USDC</button>
+                <button
+                  style={{ margin: "0 10px", fontSize: "20px" }}
+                  onClick={() => {
+                    setDepositPopup(true);
+                  }}
+                >
+                  + deposit USDC
+                </button>
+                <button style={{ margin: "0 10px", fontSize: "20px" }}>
+                  withdraw USDC
+                </button>
               </div>
             </div>
             <div
@@ -251,13 +294,15 @@ export default function Dashboard() {
               <p>$0.00</p>
             </div>
             {depositPopup && (
-            <DepositUSDCPopup
-              closeModal={() => {setDepositPopup(false)}}
-              setShowPortfolio={setShowPortfolio}
-              setPortfolioManager={setPortfolioManager}
-              setFundingTokenBalance={setFundingTokenBalance}
-            />
-          )}
+              <DepositUSDCPopup
+                closeModal={() => {
+                  setDepositPopup(false);
+                }}
+                setShowPortfolio={setShowPortfolio}
+                setPortfolioManager={setPortfolioManager}
+                setFundingTokenBalance={setFundingTokenBalance}
+              />
+            )}
           </div>
 
           <div
@@ -287,39 +332,55 @@ export default function Dashboard() {
                   width: "50%",
                 }}
               >
-                <button style={{margin: "0 10px", fontSize: "20px"}} onClick={balancePortfolio}>Withdraw All Assets</button>
-                <button style={{margin: "0 10px", fontSize: "20px"}} onClick={balancePortfolio}>balance portfolio</button>
+                <button
+                  style={{ margin: "0 10px", fontSize: "20px" }}
+                  onClick={() => {}}
+                >
+                  Withdraw All Assets
+                </button>
+                <button
+                  style={{ margin: "0 10px", fontSize: "20px" }}
+                  onClick={balancePortfolio}
+                >
+                  balance portfolio
+                </button>
               </div>
             </div>
-            
-            <div style={{
-              display: "flex",
-              flexDirection: "row"
-            }}>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+              }}
+            >
               {portfolioAssets.map((ass: any, ind) => {
-                getTokenBalance(ass.address)
-                return (<div
-                  style={{
-                    background: "#ccc",
-                    borderRadius: "20px",
-                    padding: "60px 0",
-                    alignItems: "center",
-                    textAlign: "center",
-                    fontSize: "20px",
-                    width: "20%",
-                    margin: "20px",
-                  }}
-                >
-                  <img
+                getTokenBalance(ass.address);
+                return (
+                  <div
                     style={{
-                      width: "70px",
-                      borderRadius: "50%",
+                      background: "#ccc",
+                      borderRadius: "20px",
+                      padding: "60px 0",
+                      alignItems: "center",
+                      textAlign: "center",
+                      fontSize: "20px",
+                      width: "20%",
+                      margin: "20px",
                     }}
-                    src={ass.image}
-                  />
-                  <p>{portfolioBalanceList[ind]} {ass.name}</p>
-                  <p>$0.00</p>
-                </div>)
+                  >
+                    <img
+                      style={{
+                        width: "70px",
+                        borderRadius: "50%",
+                      }}
+                      src={ass.image}
+                    />
+                    <p>
+                      {portfolioBalanceList[ind]} {ass.name}
+                    </p>
+                    <p>$0.00</p>
+                  </div>
+                );
               })}
             </div>
           </div>

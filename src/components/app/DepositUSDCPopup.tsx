@@ -7,6 +7,7 @@ import portfolioManagerABI from "../../abis/portfolioManager.json";
 import { assets } from "@/constants/assets";
 import ERC20 from "../../abis/erc20.json";
 import { useContractWrite, usePrepareContractWrite } from "wagmi";
+import { toast } from "react-toastify";
 
 export const DepositUSDCPopup = ({
   closeModal,
@@ -143,6 +144,31 @@ const ConfirmDeposit = ({ depositAmount, setLoading, closeModal, setFundingToken
     async onSuccess(data) {
       setLoading(false);
       const balance = await getTokenBalance("0x29FeC84bED2D86A7d520F26275D61fc635Ab381e")
+
+      toast("Transaction submitted", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+
+      const receipt = await data.wait();
+
+      toast.success(`${depositAmount} USDC deposited`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      })
+
     setFundingTokenBalance(parseFloat(balance) + parseFloat(depositAmount))
       closeModal();
     },
@@ -160,7 +186,6 @@ const ConfirmDeposit = ({ depositAmount, setLoading, closeModal, setFundingToken
       balance.toString(),
       decimals.toString()
     );
-    console.log(readableBalance);
     return readableBalance;
   }
 

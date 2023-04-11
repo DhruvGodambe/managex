@@ -5,8 +5,6 @@ import { getNetwork } from "@wagmi/core";
 export function Navbar() {
   const { chain: currentChain }: any = getNetwork();
 
-  console.log(currentChain);
-
   return (
     <div
       style={{

@@ -8,6 +8,7 @@ import { WagmiConfig } from "wagmi";
 import { Config } from "../config/WalletConfig";
 import {goerli, polygonMumbai} from "@wagmi/core/chains";
 import "@/styles/Modal.css";
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   const [initialChain, setInitialChain] = useState(polygonMumbai);
